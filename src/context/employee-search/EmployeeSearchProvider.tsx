@@ -1,17 +1,16 @@
-import { FunctionComponent, PropsWithChildren, useState } from 'react';
+import { FunctionComponent, PropsWithChildren, useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
 import { Employee } from '../../models';
 import { EmployeesService } from '../../services';
 import { EmployeeSearchContext } from './EmployeeSearchContext';
 
 export const EmployeeSearchProvider: FunctionComponent<PropsWithChildren> = ({ children }) => {
-  const employeesService = new EmployeesService();
   const queryClient = new QueryClient();
 
   const Provider: FunctionComponent<PropsWithChildren> = ({ children: chx }) => {
     const [ employees, setEmployees ] = useState<Employee[]>([]);
 
-    const { isLoading: getAllLoading, error: getAllErr } = useQuery('allEmployees', () => employeesService.getAllEmployees(), {
+    const { isLoading: getAllLoading, error: getAllErr } = useQuery('allEmployees', () => EmployeesService.getAllEmployees(), {
       enabled: false,
       onSuccess: (emps) => setEmployees(emps),
     });
@@ -19,6 +18,16 @@ export const EmployeeSearchProvider: FunctionComponent<PropsWithChildren> = ({ c
     const { isLoading: getByDeptLoading , error: byDeptErr } = useQuery('getByDepartment', {
       enabled: false,
       onSuccess: (emps) => setEmployees(emps as Employee[]),
+    });
+
+    useEffect(() => {
+      const addListener = EmployeesService.registerListener('employeeAdded', (emp) => {
+        console.log('add!')
+      });
+
+      return () => {
+        EmployeesService.unregisterListener(addListener);
+      }
     });
 
     return (
@@ -32,7 +41,7 @@ export const EmployeeSearchProvider: FunctionComponent<PropsWithChildren> = ({ c
 
           queryClient.fetchQuery<Employee[]>({
             queryKey: 'getByDepartment',
-            queryFn: () => employeesService.getByDepartment(dept),
+            queryFn: () => EmployeesService.getByDepartment(dept),
           })
         },
       }}>
